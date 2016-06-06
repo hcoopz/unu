@@ -45,133 +45,110 @@ private object Macro {
 
     case class UnitsAndConversions(units: List[(Type, Int)], conversions: List[(SingleType, Int)])
 
-    def normalize(tpe: Type, derivedUnit: Option[SingleType]): UnitsAndConversions = {
+    def normalize(tpe: Type): UnitsAndConversions = {
+//      c.info(c.enclosingPosition, s"Normalizing $tpe", force = false)
+      tpe match {
+        case _ if tpe =:= dimensionless.tpe =>
+          //        c.info(c.enclosingPosition, s"$tpe is a unu.Term.Dimensionless", force = false)
+          UnitsAndConversions(Nil, Nil)
 
-//      c.info(c.enclosingPosition, s"Normalizing $tpe with derived unit $derivedUnit", force = false)
+        case t@SingleType(pre, sym) if tpe.typeConstructor =:= derived.tpe.typeConstructor =>
+          //        c.info(c.enclosingPosition, s"$tpe is a unu.Term.DerivedUnit", force = false)
 
-      if (tpe =:= dimensionless.tpe) {
-//        c.info(c.enclosingPosition, s"$tpe is a unu.Term.Dimensionless", force = false)
-        UnitsAndConversions(Nil, Nil)
-      } else if (tpe.typeConstructor =:= derived.tpe.typeConstructor) {
-//        c.info(c.enclosingPosition, s"$tpe is a unu.Term.DerivedUnit", force = false)
-        tpe match {
-          case t@SingleType(pre, sym) =>
-            //            c.info(c.enclosingPosition, s"$tpe is a SingleType($pre, $sym)", force = false)
-            normalize(sym.info, Some(t))
+          val derivedUnit = t
 
-          case TypeRef(pre, sym, args) =>
-            val args@List(a) = tpe.typeArgs
-            //            c.info(c.enclosingPosition, s"$tpe is a TypeRef($pre, $sym, $args)", force = false)
-            derivedUnit match {
-              case Some(t) =>
-                val result = normalize(a, None)
-                val (c, rest) = result.conversions.partition{ case (c, _) => c =:= t }
-                assert(c.size <= 1, s"Found more than one conversion that =:= $t: $c")
-                val conversions =
-                  if (c.isEmpty) (t -> 1) :: rest
-                  else (c.head._1 -> (c.head._2 + 1)) :: rest
-                UnitsAndConversions(result.units, conversions)
+          @tailrec
+          def convertSingleType(t: c.Type): UnitsAndConversions = t match {
+            case NullaryMethodType(t) =>
+              convertSingleType(t)
 
-              case None =>
-                c.abort(c.enclosingPosition, s"No derived unit single type was found (are you using DerivedUnit directly?)")
-            }
+            case TypeRef(pre, sym, args) =>
+              val args@List(a) = t.typeArgs
+              val result = normalize(a)
+              val (c, rest) = result.conversions.partition{ case (c, _) => c =:= derivedUnit }
+              assert(c.size <= 1, s"Found more than one conversion that =:= $derivedUnit: $c")
+              val conversions =
+                if (c.isEmpty) (derivedUnit -> 1) :: rest
+                else (c.head._1 -> (c.head._2 + 1)) :: rest
+              UnitsAndConversions(result.units, conversions)
+          }
+          convertSingleType(sym.info)
 
-          case _ =>
-            c.abort(c.enclosingPosition, s"$tpe (${tpe.getClass}) is not a SingleType")
-        }
+        case t@SingleType(pre, sym) if tpe.typeConstructor =:= base.tpe.typeConstructor =>
+          //        c.info(c.enclosingPosition, s"$tpe is a unu.Term.BaseUnit", force = false)
+          UnitsAndConversions(List(t -> 1), Nil)
 
-      } else if (tpe.typeConstructor =:= base.tpe.typeConstructor) {
-//        c.info(c.enclosingPosition, s"$tpe is a unu.Term.BaseUnit", force = false)
-        tpe match {
-          case t@SingleType(pre, sym) =>
-//            c.info(c.enclosingPosition, s"$tpe is a SingleType($pre, $sym)", force = false)
-            UnitsAndConversions(List(t -> 1), Nil)
+        case _ if tpe.typeConstructor =:= div.tpe.typeConstructor =>
+          val args@List(a, b) = tpe.typeArgs
+          //        c.info(c.enclosingPosition, s"$tpe is a unu.Term.Div with args $args", force = false)
 
-          case _ =>
-            c.abort(c.enclosingPosition, s"$tpe (${tpe.getClass}) is not a SingleType (are you using BaseUnit directly?)")
-        }
-      } else if (tpe.typeConstructor =:= div.tpe.typeConstructor) {
-        val args@List(a, b) = tpe.typeArgs
-//        c.info(c.enclosingPosition, s"$tpe is a unu.Term.Div with args $args", force = false)
+          val an = normalize(a)
+          val bn = normalize(b)
+          val units = bn.units.foldLeft(an.units) { case (result, (typ, exp)) =>
+            val (u, rest) = result.partition{ case (t, _) => t =:= typ }
+            assert(u.size <= 1, s"Found more than one unit that =:= $typ: $u")
+            if (u.isEmpty) (typ -> -exp) :: rest
+            else (u.head._1 -> (u.head._2 - exp)) :: rest
+          }
+          val conversions = bn.conversions.foldLeft(an.conversions) { case (result, (typ, exp)) =>
+            val (c, rest) = result.partition{ case (t, _) => t =:= typ }
+            assert(c.size <= 1, s"Found more than one conversion that =:= $typ: $c")
+            if (c.isEmpty) (typ -> -exp) :: rest
+            else (c.head._1 -> (c.head._2 - exp)) :: rest
+          }
+          UnitsAndConversions(units.filterNot{ case (_, e) => e == 0 }, conversions.filterNot{ case (_, e) => e == 0 })
 
-        val an = normalize(a, derivedUnit)
-        val bn = normalize(b, derivedUnit)
-        val units = bn.units.foldLeft(an.units) { case (result, (typ, exp)) =>
-          val (u, rest) = result.partition{ case (t, _) => t =:= typ }
-          assert(u.size <= 1, s"Found more than one unit that =:= $typ: $u")
-          if (u.isEmpty) (typ -> -exp) :: rest
-          else (u.head._1 -> (u.head._2 - exp)) :: rest
-        }
-        val conversions = bn.conversions.foldLeft(an.conversions) { case (result, (typ, exp)) =>
-          val (c, rest) = result.partition{ case (t, _) => t =:= typ }
-          assert(c.size <= 1, s"Found more than one conversion that =:= $typ: $c")
-          if (c.isEmpty) (typ -> -exp) :: rest
-          else (c.head._1 -> (c.head._2 - exp)) :: rest
-        }
-        UnitsAndConversions(units.filterNot{ case (_, e) => e == 0 }, conversions.filterNot{ case (_, e) => e == 0 })
+        case _ if tpe.typeConstructor =:= mult.tpe.typeConstructor =>
+          val args@List(a, b) = tpe.typeArgs
+          //        c.info(c.enclosingPosition, s"$tpe is a unu.Term.Mult with args $args", force = false)
 
-      } else if (tpe.typeConstructor =:= mult.tpe.typeConstructor) {
-        val args@List(a, b) = tpe.typeArgs
-//        c.info(c.enclosingPosition, s"$tpe is a unu.Term.Mult with args $args", force = false)
+          val an = normalize(a)
+          val bn = normalize(b)
+          val units = bn.units.foldLeft(an.units) { case (result, (typ, exp)) =>
+            val (u, rest) = result.partition{ case (t, _) => t =:= typ }
+            assert(u.size <= 1, s"Found more than one unit that =:= $typ: $u")
+            if (u.isEmpty) (typ -> exp) :: rest
+            else (u.head._1 -> (u.head._2 + exp)) :: rest
+          }
+          val conversions = bn.conversions.foldLeft(an.conversions) { case (result, (typ, exp)) =>
+            val (c, rest) = result.partition{ case (t, _) => t =:= typ }
+            assert(c.size <= 1, s"Found more than one conversion that =:= $typ: $c")
+            if (c.isEmpty) (typ -> exp) :: rest
+            else (c.head._1 -> (c.head._2 + exp)) :: rest
+          }
+          UnitsAndConversions(units.filterNot{ case (_, e) => e == 0 }, conversions.filterNot{ case (_, e) => e == 0 })
 
-        val an = normalize(a, derivedUnit)
-        val bn = normalize(b, derivedUnit)
-        val units = bn.units.foldLeft(an.units) { case (result, (typ, exp)) =>
-          val (u, rest) = result.partition{ case (t, _) => t =:= typ }
-          assert(u.size <= 1, s"Found more than one unit that =:= $typ: $u")
-          if (u.isEmpty) (typ -> exp) :: rest
-          else (u.head._1 -> (u.head._2 + exp)) :: rest
-        }
-        val conversions = bn.conversions.foldLeft(an.conversions) { case (result, (typ, exp)) =>
-          val (c, rest) = result.partition{ case (t, _) => t =:= typ }
-          assert(c.size <= 1, s"Found more than one conversion that =:= $typ: $c")
-          if (c.isEmpty) (typ -> exp) :: rest
-          else (c.head._1 -> (c.head._2 + exp)) :: rest
-        }
-        UnitsAndConversions(units.filterNot{ case (_, e) => e == 0 }, conversions.filterNot{ case (_, e) => e == 0 })
+        case _ if tpe.typeConstructor =:= exp.tpe.typeConstructor =>
+          val args@List(a, b) = tpe.typeArgs
+          //        c.info(c.enclosingPosition, s"$tpe is a unu.Term.Exp with args $args", force = false)
 
-      } else if (tpe.typeConstructor =:= exp.tpe.typeConstructor) {
-        val args@List(a, b) = tpe.typeArgs
-//        c.info(c.enclosingPosition, s"$tpe is a unu.Term.Exp with args $args", force = false)
+          val e = natToInt(c)(b)
 
-        val e = natToInt(c)(b)
-        //        c.info(c.enclosingPosition, s"exp = $e", force = false)
+          val an = normalize(a)
+          val units = an.units.map{ case (u, exp) => u -> (exp * e) }
+          val conversions = an.conversions.map{ case (c, exp) => c -> (exp * e) }
+          UnitsAndConversions(units.filterNot{ case (_, e) => e == 0 }, conversions.filterNot{ case (_, e) => e == 0 })
 
-        val an = normalize(a, derivedUnit)
-        val units = an.units.map{ case (u, exp) => u -> (exp * e) }
-        val conversions = an.conversions.map{ case (c, exp) => c -> (exp * e) }
-        UnitsAndConversions(units.filterNot{ case (_, e) => e == 0 }, conversions.filterNot{ case (_, e) => e == 0 })
+        case TypeRef(pre, sym, args) =>
+          val next = c.universe.appliedType(sym, args).dealias
+          if (tpe == next) {
+            UnitsAndConversions(List((tpe, 1)), Nil)
+          } else {
+            normalize(next)
+          }
 
-      } else {
-        tpe match {
-          //          case SingleType(pre, sym) =>
-          //            c.info(c.enclosingPosition, s"$tpe is a SingleType($pre, $sym)", force = false)
-          //            ???
+        case NullaryMethodType(t) =>
+          normalize(t)
 
-          case TypeRef(pre, sym, args) =>
-//            c.info(c.enclosingPosition, s"$tpe is a TypeRef($pre, $sym, $args)", force = false)
-
-            val next = c.universe.appliedType(sym, args).dealias
-            if (tpe == next) {
-              c.abort(c.enclosingPosition, s"Got stuck trying to normalize $tpe")
-            } else {
-              normalize(next, derivedUnit)
-            }
-
-          case NullaryMethodType(t) =>
-//            c.info(c.enclosingPosition, s"$tpe is a NullaryTypeMethod($t)", force = false)
-            normalize(t, derivedUnit)
-
-          case _ =>
-            c.abort(c.enclosingPosition, s"I don't know what $tpe (${tpe.getClass}) is")
-        }
+        case _ =>
+          c.abort(c.enclosingPosition, s"I don't know what $tpe (${tpe.getClass}) is")
       }
     }
 
-    val an = normalize(a.tpe, None)
+    val an = normalize(a.tpe)
     //    c.info(c.enclosingPosition, s"Normalized ${a.tpe} as $an", force = false)
 
-    val bn = normalize(b.tpe, None)//.sortBy{ case (t, _) => t.typeSymbol.fullName }
+    val bn = normalize(b.tpe)//.sortBy{ case (t, _) => t.typeSymbol.fullName }
     //    c.info(c.enclosingPosition, s"Normalized ${b.tpe} as $bn", force = false)
 
     val au = an.units.sortBy{ case (t, _) => t.typeSymbol.fullName }

@@ -57,4 +57,26 @@ object Unu extends App {
     (mass * 0.5 * (speed * speed)).in[kg ** ((m / s) ^ Nat._2)]
   }
   println(s"a 5kg object moving at 10 m/s has an energy of $energy kg (m/s)^2 = ${energy.in[joule]} J = ${energy.in[cal]} cal = ${energy.in[kcal]} kcal")
+
+  val m3: (Double ~ (m ^ Nat._3)) = Value(1d)
+
+  println(s"1 cubic meter is ${m3.in[ft ^ Nat._3]} cubic feet")
+
+  val meter: (Double ~ m) = Value(1d)
+  val foot: (Double ~ ft) = Value(1d)
+
+  println(s"the ratio of 1 m to 1 ft is ${(meter / foot).in[Term.Dimensionless]}")
+
+  trait Blah {
+    type T <: Term
+  }
+  object Blah {
+    object ft extends Blah { type T = ft }
+    object m extends Blah { type T = m }
+  }
+
+  def f[C <: Blah](c: C) = (d2 * Value[BigDecimal, c.T](3d)).in[m ** c.T]
+
+  println(s"${f(Blah.ft).in[ft ** ft]}")
+  println(s"${f(Blah.m).in[ft ** ft]}")
 }
