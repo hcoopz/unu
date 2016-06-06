@@ -1,5 +1,7 @@
 package unu
 
+import unu.number.Nat
+
 import scala.annotation.tailrec
 import scala.language.experimental.macros
 
@@ -13,9 +15,9 @@ private object Macro {
     def toInt(tpe: Type, acc: Int): Int = {
       //      c.info(c.enclosingPosition, s"Converting $tpe to an int", force = false)
 
-      if (tpe =:= c.typeTag[unu.Nat.One.type].tpe) {
+      if (tpe =:= c.typeTag[Nat.One.type].tpe) {
         acc
-      } else if (tpe.typeConstructor =:= c.typeTag[unu.Nat.Succ[_]].tpe.typeConstructor) {
+      } else if (tpe.typeConstructor =:= c.typeTag[Nat.Succ[_]].tpe.typeConstructor) {
         toInt(tpe.typeArgs.head, acc + 1)
       } else {
         tpe match {

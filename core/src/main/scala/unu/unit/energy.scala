@@ -1,8 +1,10 @@
 package unu
 package unit
 
+import number._
+
 object energy {
-  type joule = mass.kg ** ((length.m / time.s) ^ Nat._2)
+  type joule = mass.kg ** ((length.m / time.s) ^ `2`)
 
   val cal = Term.DerivedUnit[joule](1000, 4184)
   type cal = cal.type

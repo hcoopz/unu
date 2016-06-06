@@ -6,6 +6,7 @@ import unit.length._
 import unit.time._
 import unit.mass._
 import unit.energy._
+import unu.number._
 
 object Unu extends App {
 
@@ -54,13 +55,13 @@ object Unu extends App {
     val mass: (Double ~ kg) = Value(5d)
 
 //    (speed * 0.5 * (speed * speed)).in[kg ** ((m / s) ^ Nat._2)]
-    (mass * 0.5 * (speed * speed)).in[kg ** ((m / s) ^ Nat._2)]
+    (mass * 0.5 * (speed * speed)).in[kg ** ((m / s) ^ `2`)]
   }
   println(s"a 5kg object moving at 10 m/s has an energy of $energy kg (m/s)^2 = ${energy.in[joule]} J = ${energy.in[cal]} cal = ${energy.in[kcal]} kcal")
 
-  val m3: (Double ~ (m ^ Nat._3)) = Value(1d)
+  val m3: (Double ~ (m ^ `3`)) = Value(1d)
 
-  println(s"1 cubic meter is ${m3.in[ft ^ Nat._3]} cubic feet")
+  println(s"1 cubic meter is ${m3.in[ft ^ `3`]} cubic feet")
 
   val meter: (Double ~ m) = Value(1d)
   val foot: (Double ~ ft) = Value(1d)

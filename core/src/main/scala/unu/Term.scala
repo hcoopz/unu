@@ -1,5 +1,7 @@
 package unu
 
+import unu.number.Nat
+
 sealed trait Term extends Product with Serializable
 object Term {
   sealed trait Dimensionless extends Term

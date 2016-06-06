@@ -1,3 +1,5 @@
+import unu.number.Nat
+
 import scala.language.implicitConversions
 
 package object unu {
