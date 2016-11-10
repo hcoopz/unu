@@ -1,6 +1,7 @@
 package unu
 
 import unu.number.Nat
+import spire.algebra._
 
 import scala.annotation.tailrec
 import scala.language.experimental.macros
@@ -192,16 +193,16 @@ private object Macro {
   def materializeConvert[U, A <: Term, B <: Term](c: blackbox.Context)(implicit a: c.WeakTypeTag[A], b: c.WeakTypeTag[B], u: c.WeakTypeTag[U]): c.Expr[Convert[U, A, B]] = {
     import c.universe._
     val conversions = convert(c)(a, b)
-    val numeric = c.inferImplicitValue(c.universe.appliedType(c.typeTag[Numeric[_]].tpe.typeConstructor.typeSymbol, u.tpe))
-    def fractional = c.inferImplicitValue(c.universe.appliedType(c.typeTag[Fractional[_]].tpe.typeConstructor.typeSymbol, u.tpe))
-    val factor = conversions.foldLeft[c.Tree](q"$numeric.one"){ case (tree, (tpe, exp)) =>
+    val mmonoid = c.inferImplicitValue(c.universe.appliedType(c.typeTag[MultiplicativeMonoid[_]].tpe.typeConstructor.typeSymbol, u.tpe))
+    def mgroup = c.inferImplicitValue(c.universe.appliedType(c.typeTag[MultiplicativeGroup[_]].tpe.typeConstructor.typeSymbol, u.tpe))
+    val factor = conversions.foldLeft[c.Tree](q"$mmonoid.one"){ case (tree, (tpe, exp)) =>
       assert(exp != 0, s"Somehow got a factor with power 0: $tpe")
       val power = (1 to (exp.abs - 1)).toList.foldLeft[c.Tree](q"${tpe.sym}.ratio[${u.tpe}]")((tree, _) => q"${tpe.sym}.ratio[${u.tpe}] * $tree")
 
       if (exp > 0) {
-        q"$numeric.times(($tree), ($power))"
+        q"$mmonoid.times(($tree), ($power))"
       } else {
-        q"$fractional.div(($tree), ($power))"
+        q"$mgroup.div(($tree), ($power))"
       }
     }
 //    c.info(c.enclosingPosition, s"Got conversion factor from ${a.tpe} to ${b.tpe}: $conversions: $factor", force = false)

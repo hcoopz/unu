@@ -1,6 +1,8 @@
 package unu
 
 import unu.number.Nat
+import spire.algebra._
+import spire.math._
 
 sealed trait Term extends Product with Serializable
 object Term {
@@ -10,6 +12,6 @@ object Term {
   sealed trait Div[A <: Term, B <: Term] extends Term
   case class BaseUnit() extends Term
   case class DerivedUnit[A <: Term](num: Int, denom: Int) extends Term {
-    @inline def ratio[U](implicit fractional: Fractional[U]): U = fractional.div(fractional.fromInt(num), fractional.fromInt(denom))
+    @inline def ratio[U](implicit mgroup: MultiplicativeGroup[U], fractional: Fractional[U]): U = mgroup.div(fractional.fromInt(num), fractional.fromInt(denom))
   }
 }

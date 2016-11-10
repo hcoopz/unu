@@ -10,6 +10,9 @@ import unit.mass._
 import unit.energy._
 import unu.number._
 
+import spire.algebra._
+import spire.std.any._
+
 class UnuSpec extends FlatSpec with Matchers {
 
   val epsilon = 1e-8d
