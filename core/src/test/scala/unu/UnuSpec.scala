@@ -11,6 +11,7 @@ import unit.energy._
 import unu.number._
 
 import spire.std.any._
+import shapeless.test._
 
 class UnuSpec extends FlatSpec with Matchers {
 
@@ -40,6 +41,16 @@ class UnuSpec extends FlatSpec with Matchers {
     println(s"1 cubic meter is ${m3.in[ft ^ `3`]} cubic feet")
   }
 
+  "Attempting to convert between units of different dimensions" should "fail to compile for sq ft to m" in {
+    val `sq ft`: Double ~ (ft * ft) = Value(1d)
+    illTyped { """`sq ft`.in[m]""" }
+  }
+
+  it should "fail to compile for m to sq ft" in {
+    val m: Double ~ m = Value(1d)
+    illTyped { """m.in[ft * ft]""" }
+  }
+
   val time: Double ~ hr = Value(2d)
   val distance: Double ~ mi = Value(120d)
 
@@ -63,6 +74,10 @@ class UnuSpec extends FlatSpec with Matchers {
   it should "be correct for m/s" in {
     val mpsV = speed.in[m / s]
     mpsV.value shouldEqual (60d * 1.609344d * (1000d / (60d * 60d))) +- epsilon
+  }
+
+  it should "fail to compile for m*s" in {
+    illTyped { """speed.in[m * s]""" }
   }
 
   "Summing values of the same dimensions but different units" should "be correct and output in the desired units" in {

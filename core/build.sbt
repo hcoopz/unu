@@ -7,5 +7,6 @@ scalaVersion := "2.11.7"
 libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-reflect" % scalaVersion.value,
   "org.scalatest" %% "scalatest" % "3.0.0" % "test",
-  "org.spire-math" %% "spire" % "0.11.0"
+  "org.spire-math" %% "spire" % "0.11.0",
+  "com.chuusai" %% "shapeless" % "2.3.2" % "test" /* for illTyped */
 )
