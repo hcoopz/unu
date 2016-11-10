@@ -8,6 +8,7 @@ import spire.syntax.eq._
 
 import scala.annotation.tailrec
 import scala.language.experimental.macros
+import scala.util.control.NonFatal
 
 private object Macro {
 
@@ -254,25 +255,60 @@ private object Macro {
     lazy val nroot = c.inferImplicitValue(c.universe.appliedType(c.typeTag[NRoot[_]].tpe.typeConstructor.typeSymbol, u.tpe))
     lazy val fractional = c.inferImplicitValue(c.universe.appliedType(c.typeTag[Fractional[_]].tpe.typeConstructor.typeSymbol, u.tpe))
 //    c.info(c.enclosingPosition, conversions.toString, force = false)
-    val factor = conversions.foldLeft[c.Tree](q"$mmonoid.one"){ case (tree, (tpe, exp)) =>
+    val (tree, factor) = conversions.foldLeft[(Option[c.Tree], Option[spire.math.Rational])]((None, None)){ case ((tree, factor), (tpe, exp)) =>
       assert(!exp.isZero, s"Somehow got a factor with power 0: $tpe")
 
       val expabs = exp.abs
 
-      val power = if (expabs.denominatorAsLong == 1L && expabs.numeratorAsLong.isValidInt) {
-        q"$mmonoid.prodn(${tpe.sym}.ratio[${u.tpe}], ${expabs.numeratorAsLong}.toInt)"
-      } else {
-        q"$nroot.fpow(${tpe.sym}.ratio[${u.tpe}], $fractional.fromRational(spire.math.Rational(${expabs.numeratorAsLong}, ${expabs.denominatorAsLong})))"
-      }
+      val unit = try Some(c.eval(c.Expr[Term.DerivedUnit[_ <: Term]](q"${tpe.sym}"))) catch { case NonFatal(t) => None }
 
-      if (exp.sign === (Sign.Positive: Sign)) {
-        q"$mmonoid.times(($tree), ($power))"
-      } else {
-        q"$mgroup.div(($tree), ($power))"
+      unit match {
+        case Some(unit) if expabs.denominator === SafeLong.one && expabs.numerator.isValidInt =>
+          val power = spire.math.Rational(unit.num, unit.denom).pow(exp.numerator.toInt)
+          val newFactor = factor.fold(power)(_ * power)
+
+          (tree, Some(newFactor))
+
+        case _ =>
+          // We weren't able to get the unit's conversion factors by using eval OR we're raising to a fractional or negative power of the unit; we'll have to put it in the tree
+          val power = if (expabs.denominatorAsLong == 1L && expabs.numeratorAsLong.isValidInt) {
+            if (expabs.numerator == 1L) {
+              q"${tpe.sym}.ratio[${u.tpe}]"
+            } else {
+              q"$mmonoid.prodn(${tpe.sym}.ratio[${u.tpe}], ${expabs.numeratorAsLong}.toInt)"
+            }
+          } else {
+            q"$nroot.fpow(${tpe.sym}.ratio[${u.tpe}], $fractional.fromRational(spire.math.Rational(${expabs.numeratorAsLong}, ${expabs.denominatorAsLong})))"
+          }
+
+          val newTree = if (exp.sign === (Sign.Positive: Sign)) {
+            tree.fold(power)(tree => q"$mmonoid.times(($tree), ($power))")
+          } else {
+            tree.fold(q"$mgroup.reciprocal($power)")(tree => q"$mgroup.div(($tree), ($power))")
+          }
+
+          (Some(newTree), factor)
       }
     }
+
+    val factorTree = factor.map(rational => q"$mgroup.div(${rational.numeratorAsLong}, ${rational.denominatorAsLong})")
+
+    val overallTree = (tree, factorTree) match {
+      case (Some(tree), Some(factor)) =>
+        q"$mmonoid.times($tree, $factor)"
+
+      case (Some(tree), _) =>
+        tree
+
+      case (_, Some(factor)) =>
+        factor
+
+      case _ =>
+        q"$mmonoid.one"
+    }
+
 //    c.info(c.enclosingPosition, s"Got conversion factor from ${a.tpe} to ${b.tpe}: $conversions: $factor", force = false)
-    val expr = c.Expr[Convert[U, A, B]](q"new Convert[${u.tpe}, ${a.tpe}, ${b.tpe}]($factor)")
+    val expr = c.Expr[Convert[U, A, B]](q"new Convert[${u.tpe}, ${a.tpe}, ${b.tpe}]($overallTree)")
 
 //    c.info(c.enclosingPosition, c.universe.showCode(expr.tree), force = false)
 
