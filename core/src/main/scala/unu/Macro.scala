@@ -12,20 +12,20 @@ private object Macro {
 
   import scala.reflect.macros.blackbox
 
-  private case class Fraction(num: Long, denom: Long) {
+  private case class Fraction private (num: Long, denom: Long) {
     def *(that: Fraction): Fraction = {
       val num = this.num * that.num
       val denom = this.denom * that.denom
 
       val gcd = spire.math.gcd(num, denom)
 
-      Fraction(num / gcd, denom / gcd)
+      new Fraction(num / gcd, denom / gcd)
     }
 
     def zero: Boolean = num == 0
     def nonzero: Boolean = !zero
 
-    def `unary_-`: Fraction = Fraction(-num, denom)
+    def `unary_-`: Fraction = new Fraction(-num, denom)
 
     def +(that: Fraction): Fraction = {
       val num = this.num * that.denom + that.num * this.denom
@@ -33,7 +33,7 @@ private object Macro {
 
       val gcd = spire.math.gcd(num, denom)
 
-      Fraction(num / gcd, denom / gcd)
+      new Fraction(num / gcd, denom / gcd)
     }
 
     def -(that: Fraction) = this + (-that)
@@ -47,13 +47,19 @@ private object Macro {
       a > b
     }
 
-    def >(that: Long): Boolean = this > Fraction(that, 1)
+    def >(that: Long): Boolean = this > new Fraction(that, 1)
 
-    def abs: Fraction = Fraction(num.abs, denom.abs)
+    def abs: Fraction = new Fraction(num.abs, denom.abs)
   }
 
   private object Fraction {
-    def apply(num: Long) = new Fraction(num, 1)
+    def fromLong(num: Long): Fraction = new Fraction(num, 1)
+
+    def of(num: Long, denom: Long): Fraction = {
+      val gcd = spire.math.gcd(num, denom)
+
+      new Fraction(num / gcd, denom / gcd)
+    }
   }
 
   private def natToInt(c: blackbox.Context)(tpe: c.universe.Type): Int = {
@@ -120,7 +126,7 @@ private object Macro {
 
     val RationalTypes(num, denom) = normalize(tpe)
 
-    Fraction(natToInt(c)(num), natToInt(c)(denom))
+    Fraction.of(natToInt(c)(num), natToInt(c)(denom))
   }
 
   def materializeRationalValue[R <: unu.number.Rational](c: blackbox.Context)(implicit r: c.WeakTypeTag[R]): c.Expr[RationalValue[R]] = {
@@ -166,15 +172,15 @@ private object Macro {
               val (c, rest) = result.conversions.partition{ case (c, _) => c =:= derivedUnit }
               assert(c.size <= 1, s"Found more than one conversion that =:= $derivedUnit: $c")
               val conversions =
-                if (c.isEmpty) (derivedUnit -> Fraction(1)) :: rest
-                else (c.head._1 -> (c.head._2 + Fraction(1))) :: rest
+                if (c.isEmpty) (derivedUnit -> Fraction.fromLong(1)) :: rest
+                else (c.head._1 -> (c.head._2 + Fraction.fromLong(1))) :: rest
               UnitsAndConversions(result.units, conversions)
           }
           convertSingleType(sym.info)
 
         case t@SingleType(pre, sym) if tpe.typeConstructor =:= base.tpe.typeConstructor =>
           //        c.info(c.enclosingPosition, s"$tpe is a unu.Term.BaseUnit", force = false)
-          UnitsAndConversions(List(t -> Fraction(1)), Nil)
+          UnitsAndConversions(List(t -> Fraction.fromLong(1)), Nil)
 
         case _ if tpe.typeConstructor =:= div.tpe.typeConstructor =>
           val args@List(a, b) = tpe.typeArgs
@@ -230,7 +236,7 @@ private object Macro {
         case TypeRef(pre, sym, args) =>
           val next = c.universe.appliedType(sym, args).dealias
           if (tpe == next) {
-            UnitsAndConversions(List((tpe, Fraction(1))), Nil)
+            UnitsAndConversions(List((tpe, Fraction.fromLong(1))), Nil)
           } else {
             normalize(next)
           }
