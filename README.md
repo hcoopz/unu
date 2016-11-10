@@ -84,9 +84,9 @@ scala> val furlong = Term.DerivedUnit[length.mi](8, 1); type furlong = furlong.t
 furlong: unu.Term.DerivedUnit[unu.unit.length.mi] = DerivedUnit(8,1)
 defined type alias furlong
 
-scala> import unu.number._; val atm = Term.DerivedUnit[mass.kg / (length.m ** (time.s ^ `2`))](1, 101325); type atm = atm.type
+scala> import unu.number._; val atm = Term.DerivedUnit[mass.kg / (length.m * (time.s ^ `2`))](1, 101325); type atm = atm.type
 import unu.number._
-atm: unu.Term.DerivedUnit[unu./[unu.unit.mass.kg,unu.**[unu.unit.length.m,unu.^[unu.unit.time.s,unu.number.2]]]] = DerivedUnit(1,101325)
+atm: unu.Term.DerivedUnit[unu./[unu.unit.mass.kg,unu.*unu.unit.length.m,unu.^[unu.unit.time.s,unu.number.2]]]] = DerivedUnit(1,101325)
 defined type alias atm
 ```
 

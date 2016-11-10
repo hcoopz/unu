@@ -18,16 +18,16 @@ class UnuSpec extends FlatSpec with Matchers {
 
   "Converting between units of the same dimensions" should "be correct for sq ft to sq m" in {
     val `sq ft in sq m` = {
-      val x: Double ~ (ft ** ft) = Value(1d)
-      x.in[m ** m]
+      val x: Double ~ (ft * ft) = Value(1d)
+      x.in[m * m]
     }
     `sq ft in sq m`.value shouldEqual (((2.54d * 12d) * (2.54d * 12d)) / (100d * 100d)) +- epsilon
   }
 
   it should "be correct for sq m to sq ft" in {
     val `sq m in sq ft` = {
-      val x: Double ~ (m ** m) = Value(1d)
-      x.in[ft ** ft]
+      val x: Double ~ (m * m) = Value(1d)
+      x.in[ft * ft]
     }
     `sq m in sq ft`.value shouldEqual ((100d * 100d) / ((2.54d * 12d) * (2.54d * 12d))) +- epsilon
   }
@@ -84,8 +84,8 @@ class UnuSpec extends FlatSpec with Matchers {
     val speed: Double ~ (m / s) = Value(10d)
     val mass: Double ~ kg = Value(5d)
 
-    //    (speed * 0.5 * (speed * speed)).in[kg ** ((m / s) ^ Nat._2)]
-    (mass * 0.5 * (speed * speed)).in[kg ** ((m / s) ^ `2`)]
+    //    (speed * 0.5 * (speed * speed)).in[kg * ((m / s) ^ Nat._2)]
+    (mass * 0.5 * (speed * speed)).in[kg * ((m / s) ^ `2`)]
   }
 
   "Multiplying values" should "be correct and output in the desired units" in {
@@ -125,10 +125,10 @@ class UnuSpec extends FlatSpec with Matchers {
     }
 
     val d2: BigDecimal ~ ft = Value(2d)
-    def f[C <: Blah](c: C) = (d2 * Value[BigDecimal, c.T](3d)).in[m ** c.T]
+    def f[C <: Blah](c: C) = (d2 * Value[BigDecimal, c.T](3d)).in[m * c.T]
 
-    f(Blah.ft).in[ft ** ft].value shouldEqual BigDecimal(2d * 3d) +- epsilon
-    f(Blah.m).in[ft ** ft].value shouldEqual BigDecimal(2d * 3d * (100d / (2.54d * 12d))) +- epsilon
+    f(Blah.ft).in[ft * ft].value shouldEqual BigDecimal(2d * 3d) +- epsilon
+    f(Blah.m).in[ft * ft].value shouldEqual BigDecimal(2d * 3d * (100d / (2.54d * 12d))) +- epsilon
   }
 
   "Raising to a power" should "work for naturals" in {

@@ -4,7 +4,7 @@ import scala.language.implicitConversions
 
 package object unu {
   type _unit = Term.Dimensionless
-  type **[A <: Term, B <: Term] = Term.Mult[A, B]
+  type *[A <: Term, B <: Term] = Term.Mult[A, B]
   type /[A <: Term, B <: Term] = Term.Div[A, B]
   type ^[A <: Term, R <: Rational] = Term.Exp[A, R]
 
