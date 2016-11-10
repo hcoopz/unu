@@ -1,6 +1,7 @@
 package unu
 
 import unu.number.Nat
+import unu.number._
 import spire.algebra._
 
 import scala.annotation.tailrec
@@ -34,6 +35,14 @@ private object Macro {
       }
     }
     toInt(tpe, 1)
+  }
+
+  def materializeNatValue[N <: Nat](c: blackbox.Context)(implicit n: c.WeakTypeTag[N]): c.Expr[NatValue[N]] = {
+    import c.universe._
+
+    val int = natToInt(c)(n.tpe)
+
+    c.Expr[NatValue[N]](q"new NatValue[${n.tpe}]($int)")
   }
 
   private def convert[A <: Term, B <: Term](c: blackbox.Context)(a: c.WeakTypeTag[A], b: c.WeakTypeTag[B]): List[(c.universe.SingleType, Int)] = {

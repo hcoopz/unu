@@ -1,5 +1,7 @@
 package unu
 
+import number._
+
 import spire.algebra._
 
 case class ValueSyntax[U, A <: Term](value: U) extends AnyVal {
@@ -16,6 +18,8 @@ case class ValueSyntax[U, A <: Term](value: U) extends AnyVal {
 
   def *[B <: Term, C <: Term](that: Value[U, B])(implicit msemigroup: MultiplicativeSemigroup[U], convert: Convert[U, A ** B, C]): Value[U, C] = convert(Value(msemigroup.times(value, that.value)))
   def /[B <: Term, C <: Term](that: Value[U, B])(implicit mgroup: MultiplicativeGroup[U], convert: Convert[U, A / B, C]): Value[U, C] = convert(Value(mgroup.div(value, that.value)))
+
+  def ^[N <: Nat](implicit nroot: MultiplicativeSemigroup[U], n: NatValue[N]): Value[U, A ^ N] = Value(nroot.prodn(value, n.value))
 
   def *(that: U)(implicit msemigroup: MultiplicativeSemigroup[U]): Value[U, A] = Value(msemigroup.times(value, that))
   def /(that: U)(implicit mgroup: MultiplicativeGroup[U]): Value[U, A] = Value(mgroup.div(value, that))

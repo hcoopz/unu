@@ -130,4 +130,16 @@ class UnuSpec extends FlatSpec with Matchers {
     f(Blah.ft).in[ft ** ft].value shouldEqual BigDecimal(2d * 3d) +- epsilon
     f(Blah.m).in[ft ** ft].value shouldEqual BigDecimal(2d * 3d * (100d / (2.54d * 12d))) +- epsilon
   }
+
+  "Raising to a power" should "work for naturals" in {
+    val speed: (Double ~ (mi / s)) = Value(10d)
+
+    speed.^[`2`].in[(mi / s) ^ `2`].value shouldEqual 100d +- epsilon
+
+    speed.^[`2`].in[(km / s) ^ `2`].value shouldEqual 100d * 1.609344d * 1.609344d +- epsilon
+
+    speed.^[`3`].in[(mi / s) ^ `3`].value shouldEqual 1000d +- epsilon
+
+    speed.^[`3`].in[(km / s) ^ `3`].value shouldEqual 1000d * 1.609344d * 1.609344d * 1.609344d +- epsilon
+  }
 }
