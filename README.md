@@ -91,8 +91,3 @@ defined type alias atm
 ```
 
 Don't expect good performance from it! The bytecode generated isn't great.
-
-I'd like to make it use [Spire][spire] instead of the built-in Scala numeric
-classes at some point.
-
-[spire]: https://github.com/non/spire
