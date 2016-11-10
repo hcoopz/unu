@@ -32,13 +32,13 @@ scala> import unu._; import unu.unit._
 import unu._
 import unu.unit._
 
-scala> val firstPartInInches: (Double ~ length.in) = Value(14d)
+scala> val firstPartInInches: Double ~ length.in = Value(14d)
 firstPartInInches: unu.~[Double,unu.unit.length.in] = 14.0
 
-scala> val secondPartInMeters: (Double ~ length.m) = Value(2d)
+scala> val secondPartInMeters: Double ~ length.m = Value(2d)
 secondPartInMeters: unu.~[Double,unu.unit.length.m] = 2.0
 
-scala> val someQuantityInKilograms: (Double ~ mass.kg) = Value(100d)
+scala> val someQuantityInKilograms: Double ~ mass.kg = Value(100d)
 someQuantityInKilograms: unu.~[Double,unu.unit.mass.kg] = 100.0
 
 scala> /* one of the lengths will be converted to be in the same units as the other */ 
@@ -63,7 +63,7 @@ totalLengthInCentimeters: unu.Value[Double,unu.unit.length.cm] = 235.56
 You can express compound units:
 
 ```scala
-scala> val speed: (Double ~ (length.m / time.s)) = Value(10d)
+scala> val speed: Double ~ (length.m / time.s) = Value(10d)
 speed: unu.~[Double,unu./[unu.unit.length.m,unu.unit.time.s]] = 10.0
 
 scala> val mph = speed.in[length.mi / time.hr]
@@ -77,7 +77,7 @@ scala> val km = Term.DerivedUnit[length.m](1, 1000); type km = km.type
 km: unu.Term.DerivedUnit[unu.unit.length.m] = DerivedUnit(1,1000)
 defined type alias km
 
-scala> (Value(10000d): (Double ~ length.m)).in[km]
+scala> (Value(10000d): Double ~ length.m).in[km]
 res0: unu.Value[Double,km] = 10.0
 
 scala> val furlong = Term.DerivedUnit[length.mi](8, 1); type furlong = furlong.type
