@@ -4,6 +4,7 @@ import unu.number.Nat
 import unu.number._
 import spire.algebra._
 import spire.math._
+import spire.syntax.eq._
 
 import scala.annotation.tailrec
 import scala.language.experimental.macros
@@ -12,60 +13,10 @@ private object Macro {
 
   import scala.reflect.macros.blackbox
 
-  private case class Fraction private (num: Long, denom: Long) {
-    def *(that: Fraction): Fraction = {
-      val num = this.num * that.num
-      val denom = this.denom * that.denom
-
-      val gcd = spire.math.gcd(num, denom)
-
-      new Fraction(num / gcd, denom / gcd)
-    }
-
-    def zero: Boolean = num == 0
-    def nonzero: Boolean = !zero
-
-    def `unary_-`: Fraction = new Fraction(-num, denom)
-
-    def +(that: Fraction): Fraction = {
-      val num = this.num * that.denom + that.num * this.denom
-      val denom = this.denom * that.denom
-
-      val gcd = spire.math.gcd(num, denom)
-
-      new Fraction(num / gcd, denom / gcd)
-    }
-
-    def -(that: Fraction) = this + (-that)
-
-    def positive: Boolean = num != 0 && num.signum == denom.signum
-
-    def >(that: Fraction): Boolean = {
-      val a = this.num * this.denom.signum * that.denom.abs
-      val b = that.num * that.denom.signum * this.denom.abs
-
-      a > b
-    }
-
-    def >(that: Long): Boolean = this > new Fraction(that, 1)
-
-    def abs: Fraction = new Fraction(num.abs, denom.abs)
-  }
-
-  private object Fraction {
-    def fromLong(num: Long): Fraction = new Fraction(num, 1)
-
-    def of(num: Long, denom: Long): Fraction = {
-      val gcd = spire.math.gcd(num, denom)
-
-      new Fraction(num / gcd, denom / gcd)
-    }
-  }
-
-  private def natToInt(c: blackbox.Context)(tpe: c.universe.Type): Int = {
+  private def natToLong(c: blackbox.Context)(tpe: c.universe.Type): Long = {
     import c.universe._
     @tailrec
-    def toInt(tpe: Type, acc: Int): Int = {
+    def toInt(tpe: Type, acc: Long): Long = {
       //      c.info(c.enclosingPosition, s"Converting $tpe to an int", force = false)
 
       if (tpe =:= c.typeTag[Nat.One.type].tpe) {
@@ -84,18 +35,22 @@ private object Macro {
         }
       }
     }
-    toInt(tpe, 1)
+    toInt(tpe, 1L)
   }
 
   def materializeNatValue[N <: Nat](c: blackbox.Context)(implicit n: c.WeakTypeTag[N]): c.Expr[NatValue[N]] = {
     import c.universe._
 
-    val int = natToInt(c)(n.tpe)
+    val long = natToLong(c)(n.tpe)
 
-    c.Expr[NatValue[N]](q"new NatValue[${n.tpe}]($int)")
+    if (!long.isValidInt) {
+      c.abort(c.enclosingPosition, s"$n cannot be converted to a valid Int (it yields $long)")
+    }
+
+    c.Expr[NatValue[N]](q"new NatValue[${n.tpe}](${long.toInt})")
   }
 
-  private def rationalToFraction(c: blackbox.Context)(tpe: c.universe.Type): Fraction = {
+  private def rationalToFraction(c: blackbox.Context)(tpe: c.universe.Type): spire.math.Rational = {
     import c.universe._
 
     val rational = c.typeTag[unu.number.Rational]
@@ -126,18 +81,18 @@ private object Macro {
 
     val RationalTypes(num, denom) = normalize(tpe)
 
-    Fraction.of(natToInt(c)(num), natToInt(c)(denom))
+    spire.math.Rational(natToLong(c)(num), natToLong(c)(denom))
   }
 
   def materializeRationalValue[R <: unu.number.Rational](c: blackbox.Context)(implicit r: c.WeakTypeTag[R]): c.Expr[RationalValue[R]] = {
     import c.universe._
 
-    val Fraction(num, denom) = rationalToFraction(c)(r.tpe)
+    val rational = rationalToFraction(c)(r.tpe)
 
-    c.Expr[RationalValue[R]](q"new RationalValue[${r.tpe}]($num.toInt, $denom.toInt)")
+    c.Expr[RationalValue[R]](q"new RationalValue[${r.tpe}](${rational.numeratorAsLong}, ${rational.denominatorAsLong})")
   }
 
-  private def convert[A <: Term, B <: Term](c: blackbox.Context)(a: c.WeakTypeTag[A], b: c.WeakTypeTag[B]): List[(c.universe.SingleType, Fraction)] = {
+  private def convert[A <: Term, B <: Term](c: blackbox.Context)(a: c.WeakTypeTag[A], b: c.WeakTypeTag[B]): List[(c.universe.SingleType, spire.math.Rational)] = {
     import c.universe._
 
     val derived = c.typeTag[unu.Term.DerivedUnit[_]]
@@ -147,7 +102,7 @@ private object Macro {
     val div = c.typeTag[unu.Term.Div[_, _]]
     val exp = c.typeTag[unu.Term.Exp[_, _]]
 
-    case class UnitsAndConversions(units: List[(Type, Fraction)], conversions: List[(SingleType, Fraction)])
+    case class UnitsAndConversions(units: List[(Type, spire.math.Rational)], conversions: List[(SingleType, spire.math.Rational)])
 
     def normalize(tpe: Type): UnitsAndConversions = {
 //      c.info(c.enclosingPosition, s"Normalizing $tpe", force = false)
@@ -172,15 +127,15 @@ private object Macro {
               val (c, rest) = result.conversions.partition{ case (c, _) => c =:= derivedUnit }
               assert(c.size <= 1, s"Found more than one conversion that =:= $derivedUnit: $c")
               val conversions =
-                if (c.isEmpty) (derivedUnit -> Fraction.fromLong(1)) :: rest
-                else (c.head._1 -> (c.head._2 + Fraction.fromLong(1))) :: rest
+                if (c.isEmpty) (derivedUnit -> spire.math.Rational(1)) :: rest
+                else (c.head._1 -> (c.head._2 + spire.math.Rational(1))) :: rest
               UnitsAndConversions(result.units, conversions)
           }
           convertSingleType(sym.info)
 
         case t@SingleType(pre, sym) if tpe.typeConstructor =:= base.tpe.typeConstructor =>
           //        c.info(c.enclosingPosition, s"$tpe is a unu.Term.BaseUnit", force = false)
-          UnitsAndConversions(List(t -> Fraction.fromLong(1)), Nil)
+          UnitsAndConversions(List(t -> spire.math.Rational(1)), Nil)
 
         case _ if tpe.typeConstructor =:= div.tpe.typeConstructor =>
           val args@List(a, b) = tpe.typeArgs
@@ -200,7 +155,7 @@ private object Macro {
             if (c.isEmpty) (typ -> -exp) :: rest
             else (c.head._1 -> (c.head._2 - exp)) :: rest
           }
-          UnitsAndConversions(units.filterNot{ case (_, e) => e.zero }, conversions.filterNot{ case (_, e) => e.zero })
+          UnitsAndConversions(units.filterNot{ case (_, e) => e.isZero }, conversions.filterNot{ case (_, e) => e.isZero })
 
         case _ if tpe.typeConstructor =:= mult.tpe.typeConstructor =>
           val args@List(a, b) = tpe.typeArgs
@@ -220,7 +175,7 @@ private object Macro {
             if (c.isEmpty) (typ -> exp) :: rest
             else (c.head._1 -> (c.head._2 + exp)) :: rest
           }
-          UnitsAndConversions(units.filterNot{ case (_, e) => e.zero }, conversions.filterNot{ case (_, e) => e.zero })
+          UnitsAndConversions(units.filterNot{ case (_, e) => e.isZero }, conversions.filterNot{ case (_, e) => e.isZero })
 
         case _ if tpe.typeConstructor =:= exp.tpe.typeConstructor =>
           val args@List(a, b) = tpe.typeArgs
@@ -231,12 +186,12 @@ private object Macro {
           val an = normalize(a)
           val units = an.units.map{ case (u, exp) => u -> (exp * e) }
           val conversions = an.conversions.map{ case (c, exp) => c -> (exp * e) }
-          UnitsAndConversions(units.filterNot{ case (_, e) => e.zero }, conversions.filterNot{ case (_, e) => e.zero })
+          UnitsAndConversions(units.filterNot{ case (_, e) => e.isZero }, conversions.filterNot{ case (_, e) => e.isZero })
 
         case TypeRef(pre, sym, args) =>
           val next = c.universe.appliedType(sym, args).dealias
           if (tpe == next) {
-            UnitsAndConversions(List((tpe, Fraction.fromLong(1))), Nil)
+            UnitsAndConversions(List((tpe, spire.math.Rational(1))), Nil)
           } else {
             normalize(next)
           }
@@ -261,7 +216,7 @@ private object Macro {
     val ac = an.conversions.sortBy{ case (t, _) => t.typeSymbol.fullName }
     val bc = bn.conversions.sortBy{ case (t, _) => t.typeSymbol.fullName }
 
-    def difference(au: List[(Type, Fraction)], bu: List[(Type, Fraction)]): List[(Type, Fraction)] = {
+    def difference(au: List[(Type, spire.math.Rational)], bu: List[(Type, spire.math.Rational)]): List[(Type, spire.math.Rational)] = {
       bu.foldLeft(au) { case (result, (bt, be)) =>
         result.collect {
           case (at, ae) if !(at =:= bt) =>
@@ -283,7 +238,7 @@ private object Macro {
         val (existing, rest) = result.partition{ case (t, _) => bt =:= t }
         assert(existing.size <= 1, s"Found more than one conversion that =:= $bt: $existing")
         if (existing.isEmpty) (bt, be) :: rest
-        else if (existing.head._2 == -be) rest
+        else if (existing.head._2 === -be) rest
         else (existing.head._1, be + existing.head._2) :: rest
       }
 //      c.info(c.enclosingPosition, s"${a.tpe} -> ${b.tpe} simplified conversion factors: $simplifiedConversions", force = false)
@@ -300,17 +255,17 @@ private object Macro {
     lazy val fractional = c.inferImplicitValue(c.universe.appliedType(c.typeTag[Fractional[_]].tpe.typeConstructor.typeSymbol, u.tpe))
 //    c.info(c.enclosingPosition, conversions.toString, force = false)
     val factor = conversions.foldLeft[c.Tree](q"$mmonoid.one"){ case (tree, (tpe, exp)) =>
-      assert(exp.nonzero, s"Somehow got a factor with power 0: $tpe")
+      assert(!exp.isZero, s"Somehow got a factor with power 0: $tpe")
 
       val expabs = exp.abs
 
-      val power = if (expabs.denom == 1 && expabs.num.isValidInt) {
-        q"$mmonoid.prodn(${tpe.sym}.ratio[${u.tpe}], ${expabs.num}.toInt)"
+      val power = if (expabs.denominatorAsLong == 1L && expabs.numeratorAsLong.isValidInt) {
+        q"$mmonoid.prodn(${tpe.sym}.ratio[${u.tpe}], ${expabs.numeratorAsLong}.toInt)"
       } else {
-        q"$nroot.fpow(${tpe.sym}.ratio[${u.tpe}], $fractional.fromRational(spire.math.Rational(${expabs.num}, ${expabs.denom})))"
+        q"$nroot.fpow(${tpe.sym}.ratio[${u.tpe}], $fractional.fromRational(spire.math.Rational(${expabs.numeratorAsLong}, ${expabs.denominatorAsLong})))"
       }
 
-      if (exp.positive) {
+      if (exp.sign === (Sign.Positive: Sign)) {
         q"$mmonoid.times(($tree), ($power))"
       } else {
         q"$mgroup.div(($tree), ($power))"

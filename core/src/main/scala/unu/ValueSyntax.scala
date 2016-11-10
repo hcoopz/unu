@@ -21,7 +21,7 @@ case class ValueSyntax[U, A <: Term](value: U) extends AnyVal {
 
   def ^[N <: Nat](implicit nroot: MultiplicativeSemigroup[U], n: NatValue[N]): Value[U, A ^ Rational.Fraction[N, Nat.One]] = Value(nroot.prodn(value, n.value))
 
-  def ^^[R <: Rational](implicit nroot: NRoot[U], fractional: spire.math.Fractional[U], r: RationalValue[R]): Value[U, A ^ R] = Value(nroot.fpow(value, fractional.div(fractional.fromInt(r.num), fractional.fromDenom(r.denom))))
+  def ^^[R <: Rational](implicit nroot: NRoot[U], fractional: spire.math.Fractional[U], r: RationalValue[R]): Value[U, A ^ R] = Value(nroot.fpow(value, fractional.div(fractional.fromLong(r.num), fractional.fromLong(r.denom))))
 
   def *(that: U)(implicit msemigroup: MultiplicativeSemigroup[U]): Value[U, A] = Value(msemigroup.times(value, that))
   def /(that: U)(implicit mgroup: MultiplicativeGroup[U]): Value[U, A] = Value(mgroup.div(value, that))
