@@ -134,12 +134,28 @@ class UnuSpec extends FlatSpec with Matchers {
   "Raising to a power" should "work for naturals" in {
     val speed: (Double ~ (mi / s)) = Value(10d)
 
-    speed.^[`2`].in[(mi / s) ^ `2`].value shouldEqual 100d +- epsilon
+    speed.^[Nat.`2`].in[(mi / s) ^ `2`].value shouldEqual 100d +- epsilon
 
-    speed.^[`2`].in[(km / s) ^ `2`].value shouldEqual 100d * 1.609344d * 1.609344d +- epsilon
+    speed.^[Nat.`2`].in[(km / s) ^ `2`].value shouldEqual 100d * 1.609344d * 1.609344d +- epsilon
 
-    speed.^[`3`].in[(mi / s) ^ `3`].value shouldEqual 1000d +- epsilon
+    speed.^[Nat.`3`].in[(mi / s) ^ `3`].value shouldEqual 1000d +- epsilon
 
-    speed.^[`3`].in[(km / s) ^ `3`].value shouldEqual 1000d * 1.609344d * 1.609344d * 1.609344d +- epsilon
+    speed.^[Nat.`3`].in[(km / s) ^ `3`].value shouldEqual 1000d * 1.609344d * 1.609344d * 1.609344d +- epsilon
+  }
+
+  it should "be correct for rationals" in {
+    val speed: (Double ~ (mi / s)) = Value(10d)
+
+    speed.^^[`1 / 2`].in[(mi / s) ^ `1 / 2`].value shouldEqual math.sqrt(10d) +- epsilon
+
+    speed.^^[`1 / 2`].in[(km / s) ^ `1 / 2`].value shouldEqual math.sqrt(10d) * math.sqrt(1.609344d) +- epsilon
+
+    speed.^^[`1 / 3`].in[(mi / s) ^ `1 / 3`].value shouldEqual math.pow(10d, 1d / 3d) +- epsilon
+
+    speed.^^[`1 / 3`].in[(km / s) ^ `1 / 3`].value shouldEqual math.pow(10d, 1d / 3d) * math.pow(1.609344d, 1d / 3d) +- epsilon
+
+    speed.^^[`2 / 3`].in[(mi / s) ^ `2 / 3`].value shouldEqual math.pow(10d, 2d / 3d) +- epsilon
+
+    speed.^^[`2 / 3`].in[(km / s) ^ `2 / 3`].value shouldEqual math.pow(10d, 2d / 3d) * math.pow(1.609344d, 2d / 3d) +- epsilon
   }
 }
