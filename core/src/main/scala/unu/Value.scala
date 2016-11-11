@@ -3,7 +3,7 @@ package unu
 import number._
 import spire.algebra._
 
-case class Value[U, A <: Term](value: U) extends AnyVal {
+final case class Value[U, A <: Term](value: U) extends AnyVal {
   override def toString = value.toString
 
   @inline private def v: Value[U, A] = Value(value)
