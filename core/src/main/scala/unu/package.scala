@@ -10,5 +10,4 @@ package object unu {
 
   type ~[U, A <: Term] = Value[U, A]
 
-  implicit def valueSyntax[U, A <: Term](value: Value[U, A]): ValueSyntax[U, A] = ValueSyntax(value.value)
 }
