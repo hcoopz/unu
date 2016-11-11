@@ -112,7 +112,7 @@ def unuSpecialized(a: Double): Double = {
 }
 ```
 
-The above code results in the following bytecode:
+The above functions compile to the following bytecode:
 
 ```
 public double unchecked(double);
