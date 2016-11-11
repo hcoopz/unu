@@ -9,6 +9,8 @@ import spire.syntax.eq._
 import scala.annotation.tailrec
 import scala.language.experimental.macros
 import scala.util.control.NonFatal
+import language.existentials
+import language.higherKinds
 
 private object Macro {
 

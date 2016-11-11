@@ -10,3 +10,5 @@ libraryDependencies ++= Seq(
   "org.spire-math" %% "spire" % "0.11.0",
   "com.chuusai" %% "shapeless" % "2.3.2" % "test" /* for illTyped */
 )
+
+scalacOptions ++= Seq("-feature", "-deprecation")
