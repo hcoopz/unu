@@ -291,7 +291,15 @@ private object Macro {
       }
     }
 
-    val factorTree = factor.map(rational => q"$mgroup.div(${rational.numeratorAsLong}, ${rational.denominatorAsLong})")
+    val factorTree = factor.map { rational =>
+      u.tpe match {
+        case tpe if tpe =:= c.weakTypeOf[Double] =>
+          q"${rational.numeratorAsLong.toDouble / rational.denominatorAsLong.toDouble}"
+
+        case _ =>
+          q"$mgroup.div(${rational.numeratorAsLong}, ${rational.denominatorAsLong})"
+      }
+    }
 
     val overallTree = (tree, factorTree) match {
       case (Some(tree), Some(factor)) =>
