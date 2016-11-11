@@ -100,7 +100,7 @@ class UnuSpec extends FlatSpec with Matchers {
     val mass: Double ~ kg = Value(5d)
 
     //    (speed * 0.5 * (speed * speed)).in[kg * ((m / s) ^ Nat._2)]
-    (mass * 0.5 * (speed * speed)).in[kg * ((m / s) ^ `2`)]
+    (mass `*_scalar` 0.5 * (speed * speed)).in[kg * ((m / s) ^ `2`)]
   }
 
   "Multiplying values" should "be correct and output in the desired units" in {

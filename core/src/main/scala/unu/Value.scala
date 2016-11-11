@@ -26,6 +26,6 @@ final case class Value[U, A <: Term](value: U) extends AnyVal {
 
   def ^^[R <: Rational](implicit nroot: NRoot[U], fractional: spire.math.Fractional[U], r: RationalValue[R]): Value[U, A ^ R] = Value(nroot.fpow(value, fractional.div(fractional.fromLong(r.num), fractional.fromLong(r.denom))))
 
-  def *(that: U)(implicit msemigroup: MultiplicativeSemigroup[U]): Value[U, A] = Value(msemigroup.times(value, that))
-  def /(that: U)(implicit mgroup: MultiplicativeGroup[U]): Value[U, A] = Value(mgroup.div(value, that))
+  def `*_scalar`(that: U)(implicit msemigroup: MultiplicativeSemigroup[U]): Value[U, A] = Value(msemigroup.times(value, that))
+  def `/_scalar`(that: U)(implicit mgroup: MultiplicativeGroup[U]): Value[U, A] = Value(mgroup.div(value, that))
 }
