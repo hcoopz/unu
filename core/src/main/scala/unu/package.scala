@@ -1,6 +1,7 @@
 import unu.number._
 
 import scala.language.implicitConversions
+import scala.language.experimental.macros
 
 package object unu {
   type _unit = Term.Dimensionless
@@ -10,4 +11,5 @@ package object unu {
 
   type ~[U, A <: Term] = Value[U, A]
 
+  def value[A <: Term](value: Any): Any = macro Macro.createValue[A]
 }

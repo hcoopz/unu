@@ -12,7 +12,7 @@ import scala.util.control.NonFatal
 
 private object Macro {
 
-  import scala.reflect.macros.blackbox
+  import scala.reflect.macros.{blackbox, whitebox}
 
   private def natToLong(c: blackbox.Context)(tpe: c.universe.Type): Long = {
     import c.universe._
@@ -321,5 +321,18 @@ private object Macro {
 
   def materializeConvertDouble[A <: Term, B <: Term](c: blackbox.Context)(implicit a: c.WeakTypeTag[A], b: c.WeakTypeTag[B]): c.Expr[ConvertDouble[A, B]] = {
     materializeConvertSpecialized[A, B, Double, ConvertDouble](c)(c.weakTypeOf[ConvertDouble[A, B]].typeSymbol)
+  }
+
+  def createValue[A <: Term](c: whitebox.Context)(value: c.Expr[Any])(implicit a: c.WeakTypeTag[A]): c.Expr[Any] = {
+    import c.universe._
+    val tpe = c.typecheck(value.tree).tpe
+
+    tpe match {
+      case tpe if tpe =:= c.weakTypeOf[Double] =>
+        c.Expr[ValueDouble[A]](q"new ${c.weakTypeOf[ValueDouble[A]].typeSymbol}[${a.tpe}]($value)")
+
+      case tpe =>
+        c.Expr[Any](q"new ${c.weakTypeOf[Value[_, A]].typeSymbol}[$tpe, ${a.tpe}]($value)")
+    }
   }
 }
