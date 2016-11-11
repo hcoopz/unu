@@ -96,61 +96,76 @@ Unfortunately, Value boxes its type, limiting the performance that can be
 achieved.
 
 **unu** contains a specialized ValueDouble class that does _not_ box its
-value, but still guarantees unit correctness:
+value, but still guarantees unit correctness. This can be used to write code
+that is checked and has similar performance to code that uses raw doubles.
+
+Some benchmarks:
 
 ```scala
-def unchecked(a: Double): Double = {
-  a + a / unit.length.ft.denom
-}
+object FeetToInches {
+  def unchecked(a: Double): Double = {
+    a * 2.54d / 100d
+  }
 
-def unuGeneric(a: Double): Double = {
-  (Value[Double, unit.length.ft](a) + Value[Double, unit.length.in](a)).value
-}
+  def unuGeneric(a: Double): Double = {
+    Value[Double, unit.length.in](a).in[unit.length.m].value
+  }
 
-def unuSpecialized(a: Double): Double = {
-  (ValueDouble[unit.length.ft](a) + ValueDouble[unit.length.in](a)).value
+  def unuSpecialized(a: Double): Double = {
+    ValueDouble[unit.length.in](a).in[unit.length.m].value
+  }
 }
 ```
 
-The above functions compile to the following bytecode:
+```
+Benchmark                               Mode  Cnt           Score         Error  Units
+Benchmarks.feetToInchesUnchecked       thrpt   20  3748521220.405 ± 4893486.037  ops/s
+Benchmarks.feetToInchesUnuGeneric      thrpt   20  2498481869.631 ± 1522565.887  ops/s
+Benchmarks.feetToInchesUnuSpecialized  thrpt   20  3749221063.553 ± 1982065.113  ops/s
+```
+
+```scala
+object Energy {
+  def unchecked(distanceMi: Double, timeHr: Double, massKg: Double): Double = {
+    0.5d * massKg * math.pow((distanceMi * 1.609344d * 1000d) / (timeHr * 60d * 60d), 2)
+  }
+
+  def unuGeneric(distance: Double ~ unu.unit.length.mi, time: Double ~ unu.unit.time.hr, mass: Double ~ unu.unit.mass.kg): Double ~ unu.unit.energy.joule = {
+    (mass * (distance / time).^[Nat.`2`] `*_scalar` 0.5d).in[unu.unit.energy.joule]
+  }
+
+  def unuSpecialized(distance: ValueDouble[unu.unit.length.mi], time: ValueDouble[unu.unit.time.hr], mass: ValueDouble[unu.unit.mass.kg]): ValueDouble[unu.unit.energy.joule] = {
+    (mass * (distance / time).^[Nat.`2`] `*_scalar` 0.5d).in[unu.unit.energy.joule]
+  }
+}
+```
 
 ```
-public double unchecked(double);
-  Code:
-     0: dload_1
-     1: dload_1
-     2: getstatic     #19                 // Field unu/unit/length$.MODULE$:Lunu/unit/length$;
-     5: invokevirtual #23                 // Method unu/unit/length$.ft:()Lunu/Term$DerivedUnit;
-     8: invokevirtual #29                 // Method unu/Term$DerivedUnit.denom:()J
-    11: l2d
-    12: ddiv
-    13: dadd
-    14: dreturn
+Benchmark                               Mode  Cnt           Score         Error  Units
+Benchmarks.energyUnchecked             thrpt   20  3749324750.281 ± 3606000.605  ops/s
+Benchmarks.energyUnuGeneric            thrpt   20   468584626.715 ±  627156.360  ops/s
+Benchmarks.energyUnuSpecialized        thrpt   20  3749323892.866 ± 4012940.868  ops/s
+```
 
-public double unuGeneric(double);
-  Code:
-     0: getstatic     #38                 // Field unu/Value$.MODULE$:Lunu/Value$;
-     3: dload_1
-     4: invokestatic  #44                 // Method scala/runtime/BoxesRunTime.boxToDouble:(D)Ljava/lang/Double;
-     7: checkcast     #46                 // class java/lang/Double
-    10: dload_1
-    11: invokestatic  #44                 // Method scala/runtime/BoxesRunTime.boxToDouble:(D)Ljava/lang/Double;
-    14: checkcast     #46                 // class java/lang/Double
-    17: getstatic     #51                 // Field spire/std/package$any$.MODULE$:Lspire/std/package$any$;
-    20: invokevirtual #55                 // Method spire/std/package$any$.DoubleAlgebra:()Lspire/std/DoubleAlgebra;
-    23: ldc2_w        #56                 // double 0.08333333333333333d
-    26: invokestatic  #44                 // Method scala/runtime/BoxesRunTime.boxToDouble:(D)Ljava/lang/Double;
-    29: checkcast     #46                 // class java/lang/Double
-    32: invokevirtual #61                 // Method unu/Value$.$plus$extension:(Ljava/lang/Object;Ljava/lang/Object;Lspire/algebra/Semiring;Ljava/lang/Object;)Ljava/lang/Object;
-    35: invokestatic  #65                 // Method scala/runtime/BoxesRunTime.unboxToDouble:(Ljava/lang/Object;)D
-    38: dreturn
+```scala
+object Adding {
+  def unchecked(a: Double): Double = {
+    a + a / unit.length.ft.denom
+  }
+  
+  def unuGeneric(a: Double): Double = {
+    (Value[Double, unit.length.ft](a) + Value[Double, unit.length.in](a)).value
+  }
+  
+  def unuSpecialized(a: Double): Double = {
+    (ValueDouble[unit.length.ft](a) + ValueDouble[unit.length.in](a)).value
+  }
+}
+```
 
-public double unuSpecialized(double);
-  Code:
-     0: getstatic     #71                 // Field unu/ValueDouble$.MODULE$:Lunu/ValueDouble$;
-     3: dload_1
-     4: dload_1
-     5: ldc2_w        #56                 // double 0.08333333333333333d
-     8: invokevirtual #74                 // Method unu/ValueDouble$.$plus$extension:(DDD)D
-    11: dreturn
+```
+Benchmark                               Mode  Cnt           Score         Error  Units
+Benchmarks.addingUnchecked             thrpt   20  2495465719.307 ± 6912269.703  ops/s
+Benchmarks.addingUnuGeneric            thrpt   20  2499073789.948 ± 2978062.442  ops/s
+Benchmarks.addingUnuSpecialized        thrpt   20  3744648808.980 ± 4815137.898  ops/s
 ```
