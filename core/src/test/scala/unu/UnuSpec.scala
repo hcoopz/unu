@@ -173,4 +173,15 @@ class UnuSpec extends FlatSpec with Matchers {
 
     speed.^^[`2 / 3`].in[(km / s) ^ `2 / 3`].value shouldEqual math.pow(10d, 2d / 3d) * math.pow(1.609344d, 2d / 3d) +- epsilon
   }
+
+  "Converting between units" should "work for conversion factors passed as arguments" in {
+    val usd = Term.BaseUnit(); type usd = usd.type
+
+    def usdToGbp(usd: Double ~ usd, gbp: Term.DerivedUnit[usd]): Double ~ gbp.type = {
+      usd.in[gbp.type]
+    }
+
+    usdToGbp(Value(10), Term.DerivedUnit[usd](79, 100)).value shouldEqual 7.9d +- epsilon
+    usdToGbp(Value(10), Term.DerivedUnit[usd](75, 100)).value shouldEqual 7.5d +- epsilon
+  }
 }
