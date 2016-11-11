@@ -247,7 +247,7 @@ private object Macro {
     }
   }
 
-  def materializeConvert[U, A <: Term, B <: Term](c: blackbox.Context)(implicit a: c.WeakTypeTag[A], b: c.WeakTypeTag[B], u: c.WeakTypeTag[U]): c.Expr[Convert[U, A, B]] = {
+  def materializeConvertSpecialized[A <: Term, B <: Term, U, C[_ <: Term, _ <: Term]](c: blackbox.Context)(csym: c.universe.Symbol)(implicit a: c.WeakTypeTag[A], b: c.WeakTypeTag[B], u: c.WeakTypeTag[U], ct: c.WeakTypeTag[C[_, _]]): c.Expr[C[A, B]] = {
     import c.universe._
     val conversions = convert(c)(a, b)
     val mmonoid = c.inferImplicitValue(c.universe.appliedType(c.typeTag[MultiplicativeMonoid[_]].tpe.typeConstructor.typeSymbol, u.tpe))
@@ -308,10 +308,18 @@ private object Macro {
     }
 
 //    c.info(c.enclosingPosition, s"Got conversion factor from ${a.tpe} to ${b.tpe}: $conversions: $factor", force = false)
-    val expr = c.Expr[Convert[U, A, B]](q"new Convert[${u.tpe}, ${a.tpe}, ${b.tpe}]($overallTree)")
+    val expr = c.Expr[C[A, B]](q"new $csym($overallTree)")
 
 //    c.info(c.enclosingPosition, c.universe.showCode(expr.tree), force = false)
 
     expr
+  }
+
+  def materializeConvert[U, A <: Term, B <: Term](c: blackbox.Context)(implicit a: c.WeakTypeTag[A], b: c.WeakTypeTag[B], u: c.WeakTypeTag[U]): c.Expr[Convert[U, A, B]] = {
+    materializeConvertSpecialized[A, B, U, ({type l[a <: Term, b <: Term]=Convert[U, a, b]})#l](c)(c.weakTypeOf[Convert[U, A, B]].typeSymbol)
+  }
+
+  def materializeConvertDouble[A <: Term, B <: Term](c: blackbox.Context)(implicit a: c.WeakTypeTag[A], b: c.WeakTypeTag[B]): c.Expr[ConvertDouble[A, B]] = {
+    materializeConvertSpecialized[A, B, Double, ConvertDouble](c)(c.weakTypeOf[ConvertDouble[A, B]].typeSymbol)
   }
 }
