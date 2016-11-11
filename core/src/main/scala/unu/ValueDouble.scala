@@ -29,7 +29,9 @@ final case class ValueDouble[A <: Term](value: Double) extends AnyVal {
   def `unary_-`: ValueDouble[A] = ValueDouble(-value)
 
   def +[B <: Term](that: ValueDouble[B])(implicit convert: ConvertDouble[B, A]): ValueDouble[A] = ValueDouble(value + convert(that.value))
+  def +~[B <: Term, C <: Term](that: ValueDouble[B])(implicit convertA: ConvertDouble[A, C], convertB: ConvertDouble[B, C]): ValueDouble[C] = ValueDouble(convertA(value) + convertB(that.value))
   def -[B <: Term](that: ValueDouble[B])(implicit convert: ConvertDouble[B, A]): ValueDouble[A] = ValueDouble(value - convert(that.value))
+  def -~[B <: Term, C <: Term](that: ValueDouble[B])(implicit convertA: ConvertDouble[A, C], convertB: ConvertDouble[B, C]): ValueDouble[C] = ValueDouble(convertA(value) - convertB(that.value))
 
   def *[B <: Term](that: ValueDouble[B]): ValueDouble[A * B] = ValueDouble(value * that.value)
   def /[B <: Term](that: ValueDouble[B]): ValueDouble[A / B] = ValueDouble(value / that.value)

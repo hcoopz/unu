@@ -138,16 +138,12 @@ public double unuGeneric(double);
     14: checkcast     #46                 // class java/lang/Double
     17: getstatic     #51                 // Field spire/std/package$any$.MODULE$:Lspire/std/package$any$;
     20: invokevirtual #55                 // Method spire/std/package$any$.DoubleAlgebra:()Lspire/std/DoubleAlgebra;
-    23: getstatic     #60                 // Field unu/Convert$.MODULE$:Lunu/Convert$;
-    26: getstatic     #51                 // Field spire/std/package$any$.MODULE$:Lspire/std/package$any$;
-    29: invokevirtual #55                 // Method spire/std/package$any$.DoubleAlgebra:()Lspire/std/DoubleAlgebra;
-    32: invokevirtual #64                 // Method unu/Convert$.default:(Lspire/algebra/MultiplicativeMonoid;)Ljava/lang/Object;
-    35: ldc2_w        #65                 // double 0.08333333333333333d
-    38: invokestatic  #44                 // Method scala/runtime/BoxesRunTime.boxToDouble:(D)Ljava/lang/Double;
-    41: checkcast     #46                 // class java/lang/Double
-    44: invokevirtual #70                 // Method unu/Value$.$plus$extension:(Ljava/lang/Object;Ljava/lang/Object;Lspire/algebra/Semiring;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
-    47: invokestatic  #74                 // Method scala/runtime/BoxesRunTime.unboxToDouble:(Ljava/lang/Object;)D
-    50: dreturn
+    23: ldc2_w        #56                 // double 0.08333333333333333d
+    26: invokestatic  #44                 // Method scala/runtime/BoxesRunTime.boxToDouble:(D)Ljava/lang/Double;
+    29: checkcast     #46                 // class java/lang/Double
+    32: invokevirtual #61                 // Method unu/Value$.$plus$extension:(Ljava/lang/Object;Ljava/lang/Object;Lspire/algebra/Semiring;Ljava/lang/Object;)Ljava/lang/Object;
+    35: invokestatic  #65                 // Method scala/runtime/BoxesRunTime.unboxToDouble:(Ljava/lang/Object;)D
+    38: dreturn
 
 public double unuSpecialized(double);
   Code:
