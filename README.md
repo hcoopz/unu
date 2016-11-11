@@ -100,7 +100,7 @@ value, but still guarantees unit correctness:
 
 ```scala
 def unchecked(a: Double): Double = {
-  a + a * unit.length.ft.denom
+  a + a / unit.length.ft.denom
 }
 
 def unuGeneric(a: Double): Double = {
@@ -123,7 +123,7 @@ public double unchecked(double);
      5: invokevirtual #23                 // Method unu/unit/length$.ft:()Lunu/Term$DerivedUnit;
      8: invokevirtual #29                 // Method unu/Term$DerivedUnit.denom:()J
     11: l2d
-    12: dmul
+    12: ddiv
     13: dadd
     14: dreturn
 
@@ -147,11 +147,11 @@ public double unuGeneric(double);
 
 public double unuSpecialized(double);
   Code:
-     0: getstatic     #80                 // Field unu/ValueDouble$.MODULE$:Lunu/ValueDouble$;
+     0: getstatic     #71                 // Field unu/ValueDouble$.MODULE$:Lunu/ValueDouble$;
      3: dload_1
      4: dload_1
-     5: ldc2_w        #65                 // double 0.08333333333333333d
-     8: invokevirtual #83                 // Method unu/ValueDouble$.$plus$extension:(DDD)D
+     5: ldc2_w        #56                 // double 0.08333333333333333d
+     8: invokevirtual #74                 // Method unu/ValueDouble$.$plus$extension:(DDD)D
     11: dreturn
 ```
 
