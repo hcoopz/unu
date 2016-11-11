@@ -154,6 +154,3 @@ public double unuSpecialized(double);
      8: invokevirtual #74                 // Method unu/ValueDouble$.$plus$extension:(DDD)D
     11: dreturn
 ```
-
-The function using ValueDouble actually ends up _shorter_ than the unchecked
-code!
