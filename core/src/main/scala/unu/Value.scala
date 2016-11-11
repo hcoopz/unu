@@ -10,6 +10,8 @@ case class Value[U, A <: Term](value: U) extends AnyVal {
 
   def map[V](f: U => V): Value[V, A] = Value(f(value))
 
+  def transform(f: U => U): Value[U, A] = Value(f(value))
+
   def in[B <: Term](implicit msemigroup: MultiplicativeSemigroup[U], convert: Convert[U, A, B]): Value[U, B] = convert(v)
 
   def unary_-(implicit agroup: AdditiveGroup[U]): Value[U, A] = Value(agroup.negate(value))
