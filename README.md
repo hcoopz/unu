@@ -53,7 +53,8 @@ scala> /* the below line will not compile! */
        val totalWeight = someQuantityInKilograms + firstPartInInches
 ```
 
-Addition, subtraction, multiplication, and division are supported. There is additionally limited support for exponentiation by scalar values.
+Addition, subtraction, multiplication, and division are supported. There is
+additionally limited support for exponentiation by scalar values.
 
 You can convert a value to other units:
  
